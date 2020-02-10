@@ -1,1 +1,4 @@
 .DS_Store
+consumers/__pycache__/
+producers/__pycache__/
+producers/models/__pycache__/

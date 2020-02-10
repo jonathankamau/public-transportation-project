@@ -33,16 +33,16 @@ class TransformedStation(faust.Record):
 #   places it into a new topic with only the necessary information.
 app = faust.App("stations-stream", broker="kafka://localhost:9092", store="memory://")
 # TODO: Define the input Kafka Topic. Hint: What topic did Kafka Connect output to?
-# topic = app.topic("TODO", value_type=Station)
+topic = app.topic("org.chicago.cta.stations", value_type=Station)
 # TODO: Define the output Kafka Topic
-# out_topic = app.topic("TODO", partitions=1)
+out_topic = app.topic("org.chicago.cta.stations.table.v1", partitions=1, value_type=Station)
 # TODO: Define a Faust Table
-#table = app.Table(
-#    # "TODO",
-#    # default=TODO,
-#    partitions=1,
-#    changelog_topic=out_topic,
-#)
+table = app.Table(
+   "stations",
+   default=int,
+   partitions=1,
+   changelog_topic=out_topic,
+)
 
 
 #
@@ -52,6 +52,23 @@ app = faust.App("stations-stream", broker="kafka://localhost:9092", store="memor
 # then you would set the `line` of the `TransformedStation` record to the string `"red"`
 #
 #
+@app.agent(topic)
+async def transform_record(transform_records):
+    async for record in transform_records:
+        table[record.station_id] = Station.station_id
+        table[record.station_name] = Station.station_name
+        table[record.order] = Station.order
+
+        if Station.red:
+            table[record.line] = "red"
+        elif Station.blue:
+            table[record.line] = "blue"
+        elif Station.green:
+            table[record.line] = "green"
+        else:
+            table[record.line] = ""
+
+        
 
 
 if __name__ == "__main__":
